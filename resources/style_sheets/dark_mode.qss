@@ -1,0 +1,55 @@
+/* Main Window Background */
+QMainWindow, QWidget {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+}
+
+/* Labels (Korean word, translation, etc.) */
+QLabel {
+    color: #cdd6f4;
+    font-family: 'Malgun Gothic';
+}
+
+/* The Hint Label (Underscores) */
+#hint_label {
+    color: #89b4fa;
+    font-weight: bold;
+}
+
+/* Input Fields */
+QLineEdit {
+    background-color: #313244;
+    border: 2px solid #45475a;
+    border-radius: 8px;
+    padding: 10px;
+    color: #f5e0dc;
+    font-size: 16px;
+}
+
+QLineEdit:focus {
+    border: 2px solid #89b4fa;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #45475a;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    color: #bac2de;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #585b70;
+    color: #f5e0dc;
+}
+
+QPushButton:pressed {
+    background-color: #313244;
+}
+
+/* Custom Dialog Styling (EditCardDialog) */
+QDialog {
+    background-color: #181825;
+}
