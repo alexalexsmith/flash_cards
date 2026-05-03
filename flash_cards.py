@@ -1,7 +1,7 @@
 import sys
 import subprocess
 
-# 1. Check for PyQt5 and offer to install if missing
+# Check for PyQt5 and offer to install if missing
 try:
     from PyQt5 import QtWidgets, QtGui
 except ImportError:

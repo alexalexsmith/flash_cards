@@ -17,12 +17,26 @@ QMainWindow, QWidget {
     min-height: 40px; /* Increased height to accommodate bigger text */
 }
 
-/* Target the specific title text */
 #title_label {
     font-size: 12px;      /* Adjust this number to your liking */
     font-weight: bold;
     color: #585b70;      /* Lighter color to make it pop */
     padding-left: 10px;
+}
+#img_container {
+    background-color: #f0f0f0;
+    border-radius: 15px;
+    border: 1px solid #d1d1d1; /* Subtle solid outer edge */
+}
+
+/* The inner box that provides the dashed line */
+#img_label {
+    background-color: transparent; /* Let the container color show through */
+    border: 3px dashed gray;   /* Thick dashed line */
+    border-radius: 8px;           /* Rounded dashes look cleaner */
+    color: #1e66f5;               /* Dark blue text */
+    font-size: 18px;
+    font-weight: bold;
 }
 
 QDialog {

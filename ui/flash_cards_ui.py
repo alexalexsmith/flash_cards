@@ -89,11 +89,18 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.mode_label.setStyleSheet("font-weight: bold; color: blue;")
         self.layout.addWidget(self.mode_label)
 
+        # image label container to add an offset dash border
+        self.img_container = QtWidgets.QFrame()
+        self.img_container.setObjectName("img_container")
+        self.img_container_layout = QtWidgets.QVBoxLayout(self.img_container)
+        # Add padding here - this is what "offsets" the dashed border inward
+        self.img_container_layout.setContentsMargins(15, 15, 15, 15)
         self.img_label = QtWidgets.QLabel(self)
         self.img_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.img_label.setMinimumSize(400, 400)
-        self.img_label.setStyleSheet("border: 1px solid gray; background-color: #f0f0f0;")
-        self.layout.addWidget(self.img_label)
+        self.img_label.setMinimumSize(370, 370)
+        self.img_label.setObjectName("img_label")
+        self.img_container_layout.addWidget(self.img_label)
+        self.layout.addWidget(self.img_container)
 
         # Hint Area
         self.hint_label = QtWidgets.QLabel("")
@@ -201,17 +208,19 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.btn_reveal_english.setVisible(not self.is_adding_new)  # Only show in Study mode
 
         if self.current_index < len(self.files):
+            self.img_label.setStyleSheet("border: none;")
             filename = self.files[self.current_index]
             img_path = file_utils.get_image_path(filename)
             self.display_image(img_path)
 
             self.current_data = file_utils.get_card_data(filename)
-            self.stats_label.setText(f"Correct Count: {self.current_data.get('answered_correctly', 0)}")
+            self.stats_label.setText(f"Cards Left: {len(self.files) - self.current_index}")
             self.update_hint(self.current_data.get('word', ""))
 
             self.entry.clear()
             self.entry.setFocus()
         else:
+            self.img_label.setStyleSheet("border: 3px dashed gray;")
             self.img_label.clear()
             self.hint_label.setText("")
             self.img_label.setText("Session Finished. Drag new images or adjust range.")
@@ -238,7 +247,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         src_path = self.pending_uploads[0]
         if file_utils.card_exists(src_path):
             QtWidgets.QMessageBox.warning(self, "Skipped", "Card already exists")
-            self.pending_uploads.pop(0)  # Duplicate! Skip it.[cite: 2]
+            self.pending_uploads.pop(0)  # Duplicate! Skip it.
             # Check if we need to go back to Study Mode or load the next pending item
             if not self.pending_uploads:
                 self.refresh_file_list()
@@ -258,10 +267,10 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
             try:
                 file_utils.save_new_card(src_path, korean, english)
-                self.pending_uploads.pop(0)  # Success! Remove from queue.[cite: 2]
+                self.pending_uploads.pop(0)  # Success! Remove from queue.
             except FileExistsError as e:
                 QtWidgets.QMessageBox.warning(self, "Skipped", str(e))
-                self.pending_uploads.pop(0)  # Duplicate! Skip it.[cite: 2]
+                self.pending_uploads.pop(0)  # Duplicate! Skip it.
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Error", f"Failed to save: {e}")
                 # Keep in queue so we don't lose the image reference on a random crash.
@@ -313,7 +322,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.current_data['word'] = new_korean
             self.current_data['english'] = new_english
 
-            # Update the UI visuals[cite: 2]
+            # Update the UI visuals
             self.update_hint(new_korean)
             if not self.english_label.isHidden():
                 self.english_label.setText(new_english)
@@ -335,7 +344,6 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         if reply == QtWidgets.QMessageBox.Yes:
             file_utils.delete_card(self.files[self.current_index])
             self.files.pop(self.current_index)
-            # We don't increment current_index because the list shifted
             self.load_next()
 
     def dropEvent(self, event):
