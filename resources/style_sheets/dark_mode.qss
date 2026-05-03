@@ -1,36 +1,93 @@
-/* Main Window Background */
 QMainWindow, QWidget {
     background-color: #1e1e2e;
     color: #cdd6f4;
 }
 
-/* Labels (Korean word, translation, etc.) */
+#MainFrame {
+    background-color: #1e1e2e;
+    border: 1px solid #45475a;
+    border-radius: 15px;
+}
+
+/* Custom Title Bar Area */
+#TitleBar {
+    background-color: #181825;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    min-height: 40px; /* Increased height to accommodate bigger text */
+}
+
+/* Target the specific title text */
+#title_label {
+    font-size: 12px;      /* Adjust this number to your liking */
+    font-weight: bold;
+    color: #585b70;      /* Lighter color to make it pop */
+    padding-left: 10px;
+}
+
+QDialog {
+    background-color: #181825;
+}
+
+/* --- Labels & Text --- */
 QLabel {
+    background-color: transparent;
     color: #cdd6f4;
     font-family: 'Malgun Gothic';
 }
 
-/* The Hint Label (Underscores) */
 #hint_label {
     color: #89b4fa;
+    font-size: 24px;
+    letter-spacing: 2px;
     font-weight: bold;
 }
 
-/* Input Fields */
-QLineEdit {
+/* --- Input Fields (LineEdit & SpinBox) --- */
+QLineEdit, QSpinBox {
     background-color: #313244;
     border: 2px solid #45475a;
     border-radius: 8px;
-    padding: 10px;
-    color: #f5e0dc;
+    padding: 5px 10px;
+    color: #f5e0dc; /* This sets the text color you requested */
     font-size: 16px;
 }
 
-QLineEdit:focus {
-    border: 2px solid #89b4fa;
+QLineEdit:focus, QSpinBox:focus {
+    border: 2px solid #b4befe;
 }
 
-/* Buttons */
+/* Specific SpinBox styling for the up/down buttons */
+QSpinBox::up-button, QSpinBox::down-button {
+    background-color: #45475a;
+    border-radius: 3px;
+    width: 16px;
+}
+
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+    background-color: #585b70;
+}
+
+/* --- Group Boxes --- */
+QGroupBox {
+    background-color: #1e1e2e;
+    border: 2px solid #89b4fa;
+    border-radius: 8px;
+    margin-top: 1.5ex;
+    padding: 10px;
+    color: #bac2de;
+    font-weight: bold;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 5px;
+    color: #89b4fa;
+    background-color: #1e1e2e; /* Prevents border from cutting through text */
+}
+
+/* --- Buttons --- */
 QPushButton {
     background-color: #45475a;
     border: none;
@@ -49,7 +106,9 @@ QPushButton:pressed {
     background-color: #313244;
 }
 
-/* Custom Dialog Styling (EditCardDialog) */
-QDialog {
-    background-color: #181825;
+/* --- Utilities --- */
+QSizeGrip {
+    background-image: none;
+    width: 16px;
+    height: 16px;
 }

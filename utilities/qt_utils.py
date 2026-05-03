@@ -2,7 +2,9 @@
 Qt helpers
 """
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
+
+from config import STYLE_SHEETS
 
 
 class EditCardDialog(QtWidgets.QDialog):
@@ -32,3 +34,36 @@ class EditCardDialog(QtWidgets.QDialog):
 
     def get_values(self):
         return self.korean_input.text().strip(), self.english_input.text().strip()
+
+
+class MainWindowAbstract(QtWidgets.QMainWindow):
+    TITLE = None
+    STYLE_SHEET = None
+
+    def __init__(self):
+        super().__init__()
+        self.setAcceptDrops(True)
+        self._set_style_sheet()
+        self.setWindowTitle(self.TITLE)
+
+        self.init_ui()
+        self._set_up_socket_connections()
+
+    def _set_style_sheet(self):
+        """set the style sheet"""
+        if self.STYLE_SHEET is None:
+            return
+
+        file = QtCore.QFile(self.STYLE_SHEET)
+        file.open(QtCore.QFile.ReadOnly | QtCore.QFile.Text)
+        stream = QtCore.QTextStream(file)
+        self.setStyleSheet(stream.readAll())
+
+    def init_ui(self):
+        return NotImplemented
+
+    def _set_up_socket_connections(self):
+        return NotImplemented
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls(): event.accept()

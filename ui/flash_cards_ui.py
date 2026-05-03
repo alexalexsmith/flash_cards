@@ -7,23 +7,18 @@ from utilities import file_utils, qt_utils
 from config import STYLE_SHEETS
 
 
-class FlashCardsUI(QtWidgets.QWidget):
-    TITLE = "Korean Flash Cards"
+class FlashCardsUI(qt_utils.MainWindowAbstract):
+    TITLE = "Flash Cards"
     STYLE_SHEET = f"{STYLE_SHEETS}/dark_mode.qss"
 
     def __init__(self):
         super().__init__()
-        self.setAcceptDrops(True)
         self.files = []
         self.pending_uploads = []
         self.current_index = 0
         self.is_adding_new = False
         self.current_data = {}
-        self._set_style_sheet()
-        self.setWindowTitle(self.TITLE)
 
-        self.init_ui()
-        self._set_up_socket_connections()
         self._init_sounds()
         self.refresh_file_list()
         self.load_next()
@@ -41,18 +36,34 @@ class FlashCardsUI(QtWidgets.QWidget):
             effect.setSource(QtCore.QUrl.fromLocalFile(path))
             self.incorrect_sounds.append(effect)
 
-    def _set_style_sheet(self):
-        """set the style sheet"""
-        if self.STYLE_SHEET is None:
-            return
-
-        file = QtCore.QFile(self.STYLE_SHEET)
-        file.open(QtCore.QFile.ReadOnly | QtCore.QFile.Text)
-        stream = QtCore.QTextStream(file)
-        self.setStyleSheet(stream.readAll())
-
     def init_ui(self):
-        self.layout = QtWidgets.QVBoxLayout()
+        # Create a top-level layout for the QMainWindow itself (not the container)
+        central_widget = QtWidgets.QWidget()
+        self.setCentralWidget(central_widget)
+        self.centralWidget().setMouseTracking(True)
+        self.outer_layout = QtWidgets.QVBoxLayout(central_widget)
+        self.outer_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.main_container = QtWidgets.QFrame()
+        self.main_container.setObjectName("MainFrame")
+        self.outer_layout.addWidget(self.main_container)
+
+        # Rest of your layout (title bar, etc.) goes inside self.main_container
+        self.layout = QtWidgets.QVBoxLayout(self.main_container)
+        self.layout.setContentsMargins(0, 0, 0, 0)  # Keep internal tight
+
+        # Custom Title Bar Area
+        self.title_bar = QtWidgets.QWidget()
+        self.title_bar.setObjectName("TitleBar")
+        self.title_layout = QtWidgets.QHBoxLayout(self.title_bar)
+
+        self.title_label = QtWidgets.QLabel(self.TITLE)
+        self.title_label.setObjectName("title_label")
+
+        self.title_layout.addWidget(self.title_label)
+        self.title_layout.addStretch()
+
+        self.layout.addWidget(self.title_bar)
 
         # Score Range Filter UI
         filter_group = QtWidgets.QGroupBox("Study Range (Score)")
@@ -114,9 +125,9 @@ class FlashCardsUI(QtWidgets.QWidget):
         # Management Buttons
         self.mgmt_layout = QtWidgets.QHBoxLayout()
         self.btn_skip = QtWidgets.QPushButton("Skip")
-        self.btn_edit = QtWidgets.QPushButton("Edit Word")
+        self.btn_edit = QtWidgets.QPushButton("Edit Card")
         self.btn_delete = QtWidgets.QPushButton("Delete Card")
-        self.btn_delete.setStyleSheet("background-color: #ffcccc;")
+        self.btn_delete.setStyleSheet("background-color: #960005;")
 
         self.mgmt_layout.addWidget(self.btn_skip)
         self.mgmt_layout.addWidget(self.btn_edit)
@@ -127,7 +138,6 @@ class FlashCardsUI(QtWidgets.QWidget):
         self.stats_label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.stats_label)
 
-        self.setLayout(self.layout)
         self.resize(600, 850)
 
     def _set_up_socket_connections(self):
@@ -176,7 +186,7 @@ class FlashCardsUI(QtWidgets.QWidget):
             self.display_image(self.pending_uploads[0])
             self.entry.clear()
             self.entry.setFocus()
-            self.save_new_word()
+            self.save_new_card()
             return
 
         # Case 2: Normal Study Mode
@@ -210,16 +220,21 @@ class FlashCardsUI(QtWidgets.QWidget):
     def display_image(self, path):
         pixmap = QtGui.QPixmap(path)
         if not pixmap.isNull():
-            scaled = pixmap.scaled(400, 400, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+            # Use the current size of the label to scale
+            scaled = pixmap.scaled(
+                self.img_label.size(),
+                QtCore.Qt.KeepAspectRatio,
+                QtCore.Qt.SmoothTransformation
+            )
             self.img_label.setPixmap(scaled)
 
     def handle_submit(self):
         if self.is_adding_new:
-            self.save_new_word()
+            self.save_new_card()
         else:
             self.check_answer()
 
-    def save_new_word(self):
+    def save_new_card(self):
         src_path = self.pending_uploads[0]
         if file_utils.card_exists(src_path):
             QtWidgets.QMessageBox.warning(self, "Skipped", "Card already exists")
@@ -323,12 +338,19 @@ class FlashCardsUI(QtWidgets.QWidget):
             # We don't increment current_index because the list shifted
             self.load_next()
 
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls(): event.accept()
-
     def dropEvent(self, event):
         urls = event.mimeData().urls()
         new_files = [u.toLocalFile() for u in urls if u.toLocalFile().lower().endswith(('.png', '.jpg', '.jpeg'))]
         if new_files:
             self.pending_uploads.extend(new_files)
             self.load_next()
+
+    def resizeEvent(self, event):
+        """Ensures the image rescales smoothly when the user resizes the window."""
+        super().resizeEvent(event)
+        # Re-trigger the image display logic to fit the new label size
+        if hasattr(self, 'files') and self.files and not self.is_adding_new:
+            filename = self.files[self.current_index]
+            self.display_image(file_utils.get_image_path(filename))
+        elif self.pending_uploads:
+            self.display_image(self.pending_uploads[0])
