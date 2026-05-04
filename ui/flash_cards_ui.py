@@ -15,6 +15,8 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         super().__init__()
         self.files = []
         self.pending_uploads = []
+        self.session_mistakes = []
+        self.study_mode = "STUDY"  # STUDY or RECAP
         self.current_index = 0
         self.is_adding_new = False
         self.current_data = {}
@@ -65,23 +67,34 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
         self.layout.addWidget(self.title_bar)
 
-        # Score Range Filter UI
-        filter_group = QtWidgets.QGroupBox("Study Range (Score)")
+        # Study session settings
+        study_session_group = QtWidgets.QGroupBox("Study Session Settings")
+        study_session_layout = QtWidgets.QVBoxLayout()
+        study_session_btns_layout = QtWidgets.QHBoxLayout()
         filter_layout = QtWidgets.QHBoxLayout()
+        self.spin_card_count = QtWidgets.QSpinBox()
+        self.spin_card_count.setRange(0, 999)
+        self.spin_card_count.setValue(20)
         self.spin_min = QtWidgets.QSpinBox()
         self.spin_min.setRange(0, 999)
         self.spin_max = QtWidgets.QSpinBox()
         self.spin_max.setRange(0, 999)
         self.spin_max.setValue(0)
-        self.btn_apply_filter = QtWidgets.QPushButton("Apply Filter & Shuffle")
+        self.btn_shuffle_cards = QtWidgets.QPushButton("Shuffle Cards")
+        self.btn_do_recap = QtWidgets.QPushButton("Do Session Mistake Recap")
 
-        filter_layout.addWidget(QtWidgets.QLabel("Min:"))
+        filter_layout.addWidget(QtWidgets.QLabel("Cards:"))
+        filter_layout.addWidget(self.spin_card_count)
+        filter_layout.addWidget(QtWidgets.QLabel("Recall Min:"))
         filter_layout.addWidget(self.spin_min)
-        filter_layout.addWidget(QtWidgets.QLabel("Max:"))
+        filter_layout.addWidget(QtWidgets.QLabel("Recall Max:"))
         filter_layout.addWidget(self.spin_max)
-        filter_layout.addWidget(self.btn_apply_filter)
-        filter_group.setLayout(filter_layout)
-        self.layout.addWidget(filter_group)
+        study_session_btns_layout.addWidget(self.btn_shuffle_cards)
+        study_session_btns_layout.addWidget(self.btn_do_recap)
+        study_session_layout.addLayout(filter_layout)
+        study_session_layout.addLayout(study_session_btns_layout)
+        study_session_group.setLayout(study_session_layout)
+        self.layout.addWidget(study_session_group)
 
         # Mode and Image
         self.mode_label = QtWidgets.QLabel("Mode: Study")
@@ -148,7 +161,8 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.resize(600, 850)
 
     def _set_up_socket_connections(self):
-        self.btn_apply_filter.clicked.connect(self.refresh_file_list)
+        self.btn_shuffle_cards.clicked.connect(self.refresh_file_list)
+        self.btn_do_recap.clicked.connect(self.load_session_recap)
         self.btn_reveal_english.clicked.connect(self.toggle_english)
         self.entry.returnPressed.connect(self.handle_submit)
         self.btn_confirm.clicked.connect(self.handle_submit)
@@ -157,7 +171,21 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.btn_delete.clicked.connect(self.delete_current_card)
 
     def refresh_file_list(self):
-        self.files = file_utils.get_card_file_list(self.spin_min.value(), self.spin_max.value())
+        self.study_mode = "STUDY"
+        self.files = file_utils.get_card_file_list(
+            self.spin_min.value(),
+            self.spin_max.value(),
+            self.spin_card_count.value())
+        self.current_index = 0
+        if not self.is_adding_new:
+            self.load_next()
+
+    def load_session_recap(self):
+        """Load all mistakes into a recap session"""
+        self.study_mode = "RECAP"
+        self.files = self.session_mistakes
+        # Flush the session_mistakes
+        self.session_mistakes = []
         self.current_index = 0
         if not self.is_adding_new:
             self.load_next()
@@ -198,7 +226,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
         # Case 2: Normal Study Mode
         self.is_adding_new = False
-        self.mode_label.setText("MODE: STUDY")
+        self.mode_label.setText(f"MODE: {self.study_mode}")
         self.mode_label.setStyleSheet("font-weight: bold; color: #cdd6f4;")
         self.btn_confirm.setText("Confirm Answer")
 
@@ -223,7 +251,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.img_label.setStyleSheet("border: 3px dashed gray;")
             self.img_label.clear()
             self.hint_label.setText("")
-            self.img_label.setText("Session Finished. Drag new images or adjust range.")
+            self.img_label.setText("Session Finished. Drag new images or shuffle cards.")
             self.stats_label.setText("")
 
     def display_image(self, path):
@@ -284,7 +312,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         if not self.files: return
         user_input = self.entry.text().strip()
         correct_word = self.current_data['word']
-
+        next_card_index = 1
         if user_input == correct_word:
             random.choice(self.correct_sounds).play()
             self.current_data['answered_correctly'] += 1
@@ -294,8 +322,19 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.current_data['answered_correctly'] = max(0, self.current_data['answered_correctly'] - 1)
             QtWidgets.QMessageBox.critical(self, "Wrong", f"The word was: {correct_word}")
 
-        file_utils.update_card_data(self.files[self.current_index], self.current_data)
-        self.current_index += 1
+            # add card to session mistake storage
+            if self.study_mode == "STUDY":
+                self.session_mistakes.append(self.files[self.current_index])
+
+            # stay on this card if we are in recap mode
+            if self.study_mode == "RECAP":
+                next_card_index = 0
+
+        # Only update data if we are in study mode
+        if self.study_mode == "STUDY":
+            file_utils.update_card_data(self.files[self.current_index], self.current_data)
+
+        self.current_index += next_card_index
         self.load_next()
 
     def edit_current_word(self):

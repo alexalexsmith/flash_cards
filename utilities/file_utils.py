@@ -11,8 +11,14 @@ from utilities import json_utils
 
 # NOTE: flash card file management
 
-def get_card_file_list(min_score, max_score):
-    """Filters images based on the score range and returns a shuffled list."""
+def get_card_file_list(min_score, max_score, card_count):
+    """
+    Filters images based on the score range and returns a shuffled list.
+    :param min_score: min score value of card
+    :param max_score: max score value of card
+    :param card_count: amount of cards to return
+    :return: card image name list
+    """
     if not os.path.exists(CARDS):
         os.makedirs(CARDS)
 
@@ -30,7 +36,7 @@ def get_card_file_list(min_score, max_score):
             filtered_list.append(img_name)
 
     random.shuffle(filtered_list)
-    return filtered_list
+    return filtered_list[:card_count]
 
 
 def get_image_path(filename):
