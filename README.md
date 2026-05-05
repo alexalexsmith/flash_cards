@@ -1,4 +1,4 @@
-<img width="602" height="906" alt="flash_cards_tool" src="https://github.com/user-attachments/assets/a963275d-bd28-47ba-8e74-3ca3be5cf5f8" />
+<img width="584" height="918" alt="flash_cards_tool" src="https://github.com/user-attachments/assets/6e06a81c-f27c-42ff-808e-6721800ec5bf" />
 
 # flash_cards
 flashcard tool for creating and using flashcards. Right now it is designed to learn korean
