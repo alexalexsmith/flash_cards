@@ -4,8 +4,6 @@ Qt helpers
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-from config import STYLE_SHEETS
-
 
 class EditCardDialog(QtWidgets.QDialog):
     def __init__(self, old_answer="", old_hint="", parent=None):

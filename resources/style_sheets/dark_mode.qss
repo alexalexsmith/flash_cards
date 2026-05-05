@@ -81,6 +81,45 @@ QSpinBox::up-button, QSpinBox::down-button {
 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
     background-color: #585b70;
 }
+/* The entire checkbox widget area */
+QCheckBox {
+    spacing: 8px;           /* Space between the box and the text */
+    color: #cdd6f4;
+    font-size: 14px;
+}
+
+/* The actual square box */
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    background-color: #45475a; /* Matches your SpinBox button color */
+    border-radius: 4px;        /* Slightly rounded corners */
+    border: 1px solid #585b70;
+}
+
+/* Hover state - matches your SpinBox hover logic */
+QCheckBox::indicator:hover {
+    background-color: #585b70;
+    border: 1px solid #89b4fa; /* Blue border on hover */
+}
+
+/* Checked state */
+QCheckBox::indicator:checked {
+    background-color: #89b4fa; /* Your accent blue */
+    border: 1px solid #89b4fa;
+    /* This adds a simple white checkmark (Unicode) */
+    image: url(none); /* Clear any default image */
+}
+
+/* Optional: If you want a small dot or check inside when checked */
+QCheckBox::indicator:checked {
+    image: url(check.png); /* If you have an icon, otherwise use background color */
+}
+
+/* Pressed state */
+QCheckBox::indicator:pressed {
+    background-color: #313244;
+}
 
 /* --- Group Boxes --- */
 QGroupBox {

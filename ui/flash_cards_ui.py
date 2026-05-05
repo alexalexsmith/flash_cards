@@ -3,7 +3,7 @@ import random
 from PyQt5.QtMultimedia import QSoundEffect
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-from utilities import file_utils, qt_utils
+from utilities import card_utils, file_utils, qt_utils
 from config import STYLE_SHEETS
 
 
@@ -13,13 +13,13 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
     def __init__(self):
         super().__init__()
-        self.files = []
+        self.cards = []
         self.pending_uploads = []
         self.session_mistakes = []
         self.study_mode = "STUDY"  # STUDY, RECAP, PRACTICE
         self.current_index = 0
         self.is_adding_new = False
-        self.current_data = {}
+        self.current_card = None
 
         self._init_sounds()
         self.shuffle_cards()
@@ -182,8 +182,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.study_mode = "STUDY"
         if self.chckbx_practice_mode.isChecked():
             self.study_mode = "PRACTICE"
-
-        self.files = file_utils.get_card_file_list(
+        self.cards = card_utils.get_flash_cards(
             self.spin_min.value(),
             self.spin_max.value(),
             self.spin_card_count.value())
@@ -196,7 +195,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.study_mode = "RECAP"
         # In recap mode you can't use practice mode
         self.chckbx_practice_mode.setEnabled(False)
-        self.files = self.session_mistakes
+        self.cards = self.session_mistakes
         # Flush the session_mistakes
         self.session_mistakes = []
         self.current_index = 0
@@ -208,13 +207,14 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         if self.chckbx_practice_mode.isChecked():
             self.study_mode = "PRACTICE"
             self.mode_label.setText(f"MODE: {self.study_mode}")
-            self.update_spelling_hint(self.current_data.get('answer', ""))
+            self.update_spelling_hint()
         else:
             self.study_mode = "STUDY"
             self.mode_label.setText(f"MODE: {self.study_mode}")
-            self.update_spelling_hint(self.current_data.get('answer', ""))
+            self.update_spelling_hint()
 
-    def update_spelling_hint(self, word):
+    def update_spelling_hint(self):
+        word = self.current_card.answer
         hint = ""
         for char in word:
             if char == " ":
@@ -229,8 +229,8 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
     def toggle_hint(self):
         """Shows/Hides the Hint."""
         if self.hint_label.isHidden():
-            translation = self.current_data.get('hint', "No translation provided.")
-            self.hint_label.setText(translation)
+            hint = self.current_card.hint
+            self.hint_label.setText(hint)
             self.hint_label.show()
             self.btn_reveal_hint.setText("Hide Hint")
         else:
@@ -262,15 +262,13 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.btn_reveal_hint.setText("Reveal Hint")
         self.btn_reveal_hint.setVisible(not self.is_adding_new)  # Don't show hint when adding cards
 
-        if self.current_index < len(self.files):
+        if self.current_index < len(self.cards):
             self.img_label.setStyleSheet("border: none;")
-            filename = self.files[self.current_index]
-            img_path = file_utils.get_image_path(filename)
-            self.display_image(img_path)
+            self.current_card = self.cards[self.current_index]
+            self.display_image(self.current_card.image_path)
 
-            self.current_data = file_utils.get_card_data(filename)
-            self.stats_label.setText(f"Cards Left: {len(self.files) - self.current_index}")
-            self.update_spelling_hint(self.current_data.get('answer', ""))
+            self.stats_label.setText(f"Cards Left: {len(self.cards) - self.current_index}")
+            self.update_spelling_hint()
 
             self.entry.clear()
             self.entry.setFocus()
@@ -336,22 +334,24 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.load_next()
 
     def check_answer(self):
-        if not self.files: return
+        if not self.cards: return
         user_input = self.entry.text().strip()
-        correct_word = self.current_data['answer']
+        correct_word = self.current_card.answer
         next_card_index = 1
         if user_input == correct_word:
             random.choice(self.correct_sounds).play()
-            self.current_data['recall'] += 1
+            if self.study_mode == "STUDY":
+                self.current_card.recall += 1
             QtWidgets.QMessageBox.information(self, "Correct!", f"answer: {correct_word}")
         else:
             random.choice(self.incorrect_sounds).play()
-            self.current_data['recall'] = max(0, self.current_data['recall'] - 1)
+            if self.study_mode == "STUDY":
+                self.current_card.recall = max(0, self.current_card.recall - 1)
             QtWidgets.QMessageBox.critical(self, "Wrong", f"The answer was: {correct_word}")
 
             # add card to session mistake storage
             if self.study_mode == "STUDY":
-                self.session_mistakes.append(self.files[self.current_index])
+                self.session_mistakes.append(self.cards[self.current_index])
 
             # stay on this card if we are in recap mode
             if self.study_mode == "RECAP":
@@ -359,19 +359,19 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
         # Only update data if we are in study mode
         if self.study_mode == "STUDY":
-            file_utils.update_card_data(self.files[self.current_index], self.current_data)
+            self.current_card.update_card()
 
         self.current_index += next_card_index
         self.load_next()
 
     def edit_current_word(self):
-        if self.is_adding_new or not self.files:
+        if self.is_adding_new or not self.cards:
             return
 
             # Initialize the custom dialog with existing data
         dialog = qt_utils.EditCardDialog(
-            old_answer=self.current_data.get('answer', ""),
-            old_hint=self.current_data.get('hint', ""),
+            old_answer=self.current_card.answer,
+            old_hint=self.current_card.hint,
             parent=self
         )
 
@@ -384,17 +384,17 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
                 QtWidgets.QMessageBox.warning(self, "Error", "Answer cannot be empty.")
                 return
 
-            # Update the data object
-            self.current_data['answer'] = new_answer
-            self.current_data['hint'] = new_hint
+            # Update the Card object
+            self.current_card.answer = new_answer
+            self.current_card.hint = new_hint
 
             # Update the UI visuals
-            self.update_spelling_hint(new_answer)
+            self.update_spelling_hint()
             if not self.hint_label.isHidden():
                 self.hint_label.setText(new_hint)
 
-            # Save once to disk
-            file_utils.update_card_data(self.files[self.current_index], self.current_data)
+            # Save card updates to disk
+            self.current_card.update_card()
 
     def skip_image(self):
         if self.is_adding_new:
@@ -404,12 +404,12 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.load_next()
 
     def delete_current_card(self):
-        if self.is_adding_new or not self.files: return
+        if self.is_adding_new or not self.cards: return
         reply = QtWidgets.QMessageBox.question(self, 'Delete', "Delete this card forever?",
                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
-            file_utils.delete_card(self.files[self.current_index])
-            self.files.pop(self.current_index)
+            self.current_card.delete()
+            self.cards.pop(self.current_index)
             self.load_next()
 
     def dropEvent(self, event):
@@ -423,8 +423,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         """Ensures the image rescales smoothly when the user resizes the window."""
         super().resizeEvent(event)
         # Re-trigger the image display logic to fit the new label size
-        if hasattr(self, 'files') and self.files and not self.is_adding_new:
-            filename = self.files[self.current_index]
-            self.display_image(file_utils.get_image_path(filename))
+        if hasattr(self, 'files') and self.cards and not self.is_adding_new:
+            self.display_image(self.current_card.image_path)
         elif self.pending_uploads:
             self.display_image(self.pending_uploads[0])

@@ -11,11 +11,11 @@ from utilities import json_utils
 
 # NOTE: flash card file management
 
-def get_card_file_list(min_score, max_score, card_count):
+def get_card_file_list(min_recall, max_recall, card_count, *args, **kwargs):
     """
     Filters images based on the score range and returns a shuffled list.
-    :param min_score: min score value of card
-    :param max_score: max score value of card
+    :param min_recall: min score value of card
+    :param max_recall: max score value of card
     :param card_count: amount of cards to return
     :return: card image name list
     """
@@ -32,7 +32,7 @@ def get_card_file_list(min_score, max_score, card_count):
             data = json_utils.load_json(json_path)
             score = data.get('recall', 0)
 
-        if min_score <= score <= max_score:
+        if min_recall <= score <= max_recall:
             filtered_list.append(img_name)
 
     random.shuffle(filtered_list)
@@ -87,6 +87,7 @@ def save_new_card(src_path, answer, hint=""):
             "hint": hint,
             "recall": 0
         })
+    return dest_path
 
 
 def delete_card(filename):
