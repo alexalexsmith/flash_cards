@@ -122,8 +122,11 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
         # Hint Area
         self.spelling_hint_label = QtWidgets.QLabel("")
+        self.spelling_hint_label.setObjectName("spelling_hint_label")
         self.spelling_hint_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.spelling_hint_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #555; letter-spacing: 5px;")
+        self.spelling_hint_label.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))  # Change cursor to hand
+        self.spelling_hint_label.mousePressEvent = self.copy_hint_to_clipboard
+        self.spelling_hint_label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.spelling_hint_label)
 
         # Hint Area
@@ -173,7 +176,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.entry.returnPressed.connect(self.handle_submit)
         self.btn_confirm.clicked.connect(self.handle_submit)
         self.btn_skip.clicked.connect(self.skip_image)
-        self.btn_edit.clicked.connect(self.edit_current_word)
+        self.btn_edit.clicked.connect(self.edit_current_card)
         self.btn_delete.clicked.connect(self.delete_current_card)
 
     def shuffle_cards(self):
@@ -212,6 +215,29 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.study_mode = "STUDY"
             self.mode_label.setText(f"MODE: {self.study_mode}")
             self.update_spelling_hint()
+
+    def copy_hint_to_clipboard(self, event):
+        """Copies the current Korean word to the clipboard when the hint is clicked."""
+        if not self.current_card:
+            return
+
+        word_to_copy = self.current_card.answer
+
+        # Access the system clipboard
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setText(word_to_copy)
+
+        # Optional: Provide a tiny visual feedback (changing the label text briefly)
+        original_hint = self.spelling_hint_label.text()
+        self.spelling_hint_label.setText("COPIED!")
+        self.spelling_hint_label.setStyleSheet("color: #a6e3a1;")  # Temporary green color
+
+        # Reset the text after 1 second
+        QtCore.QTimer.singleShot(1000, lambda: self._reset_hint_style(original_hint))
+
+    def _reset_hint_style(self, original_text):
+        self.spelling_hint_label.setText(original_text)
+        self.spelling_hint_label.setStyleSheet("")
 
     def update_spelling_hint(self):
         word = self.current_card.answer
@@ -364,7 +390,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.current_index += next_card_index
         self.load_next()
 
-    def edit_current_word(self):
+    def edit_current_card(self):
         if self.is_adding_new or not self.cards:
             return
 

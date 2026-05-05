@@ -50,11 +50,14 @@ QLabel {
     font-family: 'Malgun Gothic';
 }
 
-#hint_label {
+#spelling_hint_label {
     color: #89b4fa;
     font-size: 24px;
     letter-spacing: 2px;
     font-weight: bold;
+}
+#spelling_hint_label:hover {
+    color: #b4befe; /* Changes to a lighter blue on hover */
 }
 
 /* --- Input Fields (LineEdit & SpinBox) --- */
