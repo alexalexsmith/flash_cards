@@ -342,11 +342,11 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         next_card_index = 1
         if user_input == correct_word:
             random.choice(self.correct_sounds).play()
-            self.current_data['answered_correctly'] += 1
+            self.current_data['recall'] += 1
             QtWidgets.QMessageBox.information(self, "Correct!", f"answer: {correct_word}")
         else:
             random.choice(self.incorrect_sounds).play()
-            self.current_data['answered_correctly'] = max(0, self.current_data['answered_correctly'] - 1)
+            self.current_data['recall'] = max(0, self.current_data['recall'] - 1)
             QtWidgets.QMessageBox.critical(self, "Wrong", f"The answer was: {correct_word}")
 
             # add card to session mistake storage

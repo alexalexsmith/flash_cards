@@ -85,7 +85,7 @@ def save_new_card(src_path, answer, hint=""):
         json_utils.save_json(json_path, {
             "answer": answer,
             "hint": hint,
-            "recal": 0
+            "recall": 0
         })
 
 
@@ -114,4 +114,3 @@ def get_sound_files(category):
         if filename.lower().endswith(".wav"):
             sound_files.append(os.path.abspath(os.path.join(sounds_directory, filename)))
     return sound_files
-
