@@ -30,7 +30,7 @@ def get_card_file_list(min_score, max_score, card_count):
         score = 0
         if os.path.exists(json_path):
             data = json_utils.load_json(json_path)
-            score = data.get('answered_correctly', 0)
+            score = data.get('recal', 0)
 
         if min_score <= score <= max_score:
             filtered_list.append(img_name)
@@ -50,7 +50,7 @@ def get_card_data(filename):
     if os.path.exists(json_path):
         return json_utils.load_json(json_path)
     # Return a default structure if the file is missing or new
-    return {"word": "", "english": "", "answered_correctly": 0}
+    return {"answer": "", "hint": "", "recal": 0}
 
 
 def update_card_data(filename, data):
@@ -69,7 +69,7 @@ def card_exists(src_path):
     return False
 
 
-def save_new_card(src_path, word, english=""):
+def save_new_card(src_path, answer, hint=""):
     """Copies a new image to the folder and creates its JSON. Raises error if exists."""
     base_name = os.path.basename(src_path)
     dest_path = os.path.join(CARDS, base_name)
@@ -83,9 +83,9 @@ def save_new_card(src_path, word, english=""):
 
         json_path = os.path.splitext(dest_path)[0] + ".json"
         json_utils.save_json(json_path, {
-            "word": word,
-            "english": english,
-            "answered_correctly": 0
+            "answer": answer,
+            "hint": hint,
+            "recal": 0
         })
 
 
@@ -114,3 +114,4 @@ def get_sound_files(category):
         if filename.lower().endswith(".wav"):
             sound_files.append(os.path.abspath(os.path.join(sounds_directory, filename)))
     return sound_files
+

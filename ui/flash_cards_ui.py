@@ -121,10 +121,10 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.layout.addWidget(self.img_container)
 
         # Hint Area
-        self.hint_label = QtWidgets.QLabel("")
-        self.hint_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.hint_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #555; letter-spacing: 5px;")
-        self.layout.addWidget(self.hint_label)
+        self.spelling_hint_label = QtWidgets.QLabel("")
+        self.spelling_hint_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.spelling_hint_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #555; letter-spacing: 5px;")
+        self.layout.addWidget(self.spelling_hint_label)
 
         # Hint Area
         self.hint_label = QtWidgets.QLabel("")
@@ -169,7 +169,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.chckbx_practice_mode.toggled.connect(self._callback_practice_mode_state_changed)
         self.btn_shuffle_cards.clicked.connect(self.shuffle_cards)
         self.btn_do_recap.clicked.connect(self.load_session_recap)
-        self.btn_reveal_hint.clicked.connect(self.toggle_english)
+        self.btn_reveal_hint.clicked.connect(self.toggle_hint)
         self.entry.returnPressed.connect(self.handle_submit)
         self.btn_confirm.clicked.connect(self.handle_submit)
         self.btn_skip.clicked.connect(self.skip_image)
@@ -208,29 +208,28 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         if self.chckbx_practice_mode.isChecked():
             self.study_mode = "PRACTICE"
             self.mode_label.setText(f"MODE: {self.study_mode}")
-            self.update_hint(self.current_data.get('word', ""))
+            self.update_spelling_hint(self.current_data.get('answer', ""))
         else:
             self.study_mode = "STUDY"
             self.mode_label.setText(f"MODE: {self.study_mode}")
-            self.update_hint(self.current_data.get('word', ""))
+            self.update_spelling_hint(self.current_data.get('answer', ""))
 
-    def update_hint(self, word):
+    def update_spelling_hint(self, word):
         hint = ""
+        for char in word:
+            if char == " ":
+                hint += "  "
+            else:
+                hint += "_ "
         # In practice mode the answer is displayed
         if self.study_mode == "PRACTICE":
             hint = word
-        else:
-            for char in word:
-                if char == " ":
-                    hint += "  "
-                else:
-                    hint += "_ "
-        self.hint_label.setText(hint.strip())
+        self.spelling_hint_label.setText(hint.strip())
 
-    def toggle_english(self):
-        """Shows/Hides the English translation."""
+    def toggle_hint(self):
+        """Shows/Hides the Hint."""
         if self.hint_label.isHidden():
-            translation = self.current_data.get('english', "No translation provided.")
+            translation = self.current_data.get('hint', "No translation provided.")
             self.hint_label.setText(translation)
             self.hint_label.show()
             self.btn_reveal_hint.setText("Hide Hint")
@@ -258,7 +257,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.mode_label.setStyleSheet("font-weight: bold; color: #cdd6f4;")
         self.btn_confirm.setText("Confirm Answer")
 
-        # Reset English UI for every new card
+        # Reset Hint UI for every new card
         self.hint_label.hide()
         self.btn_reveal_hint.setText("Reveal Hint")
         self.btn_reveal_hint.setVisible(not self.is_adding_new)  # Don't show hint when adding cards
@@ -271,7 +270,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
             self.current_data = file_utils.get_card_data(filename)
             self.stats_label.setText(f"Cards Left: {len(self.files) - self.current_index}")
-            self.update_hint(self.current_data.get('word', ""))
+            self.update_spelling_hint(self.current_data.get('answer', ""))
 
             self.entry.clear()
             self.entry.setFocus()
@@ -313,16 +312,16 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         dialog = qt_utils.EditCardDialog(parent=self)
 
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
-            korean, english = dialog.get_values()
+            answer, hint = dialog.get_values()
 
-            if not korean:
-                QtWidgets.QMessageBox.warning(self, "Error", "Korean word cannot be empty.")
+            if not answer:
+                QtWidgets.QMessageBox.warning(self, "Error", "Answer cannot be empty.")
                 # We return without popping, so the user can click 'Save' again
                 # and the same image will still be there.
                 return
 
             try:
-                file_utils.save_new_card(src_path, korean, english)
+                file_utils.save_new_card(src_path, answer, hint)
                 self.pending_uploads.pop(0)  # Success! Remove from queue.
             except FileExistsError as e:
                 QtWidgets.QMessageBox.warning(self, "Skipped", str(e))
@@ -339,16 +338,16 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
     def check_answer(self):
         if not self.files: return
         user_input = self.entry.text().strip()
-        correct_word = self.current_data['word']
+        correct_word = self.current_data['answer']
         next_card_index = 1
         if user_input == correct_word:
             random.choice(self.correct_sounds).play()
             self.current_data['answered_correctly'] += 1
-            QtWidgets.QMessageBox.information(self, "Correct!", f"Word: {correct_word}")
+            QtWidgets.QMessageBox.information(self, "Correct!", f"answer: {correct_word}")
         else:
             random.choice(self.incorrect_sounds).play()
             self.current_data['answered_correctly'] = max(0, self.current_data['answered_correctly'] - 1)
-            QtWidgets.QMessageBox.critical(self, "Wrong", f"The word was: {correct_word}")
+            QtWidgets.QMessageBox.critical(self, "Wrong", f"The answer was: {correct_word}")
 
             # add card to session mistake storage
             if self.study_mode == "STUDY":
@@ -371,28 +370,28 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
             # Initialize the custom dialog with existing data
         dialog = qt_utils.EditCardDialog(
-            old_answer=self.current_data.get('word', ""),
-            old_hint=self.current_data.get('english', ""),
+            old_answer=self.current_data.get('answer', ""),
+            old_hint=self.current_data.get('hint', ""),
             parent=self
         )
 
         # Executing the dialog (returns True if OK was clicked)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
-            new_korean, new_english = dialog.get_values()
+            new_answer, new_hint = dialog.get_values()
 
-            # Validate that the Korean word isn't empty
-            if not new_korean:
-                QtWidgets.QMessageBox.warning(self, "Error", "Korean word cannot be empty.")
+            # Validate that the answer isn't empty
+            if not new_answer:
+                QtWidgets.QMessageBox.warning(self, "Error", "Answer cannot be empty.")
                 return
 
             # Update the data object
-            self.current_data['word'] = new_korean
-            self.current_data['english'] = new_english
+            self.current_data['answer'] = new_answer
+            self.current_data['hint'] = new_hint
 
             # Update the UI visuals
-            self.update_hint(new_korean)
+            self.update_spelling_hint(new_answer)
             if not self.hint_label.isHidden():
-                self.hint_label.setText(new_english)
+                self.hint_label.setText(new_hint)
 
             # Save once to disk
             file_utils.update_card_data(self.files[self.current_index], self.current_data)
