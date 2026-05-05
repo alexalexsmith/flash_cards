@@ -8,7 +8,7 @@ from config import STYLE_SHEETS
 
 
 class EditCardDialog(QtWidgets.QDialog):
-    def __init__(self, old_korean="", old_english="", parent=None):
+    def __init__(self, old_answer="", old_hint="", parent=None):
         super().__init__(parent)
         self.setWindowTitle("Edit Card Details")
 
@@ -16,11 +16,11 @@ class EditCardDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
         form_layout = QtWidgets.QFormLayout()
 
-        self.korean_input = QtWidgets.QLineEdit(old_korean)
-        self.english_input = QtWidgets.QLineEdit(old_english)
+        self.answer_input = QtWidgets.QLineEdit(old_answer)
+        self.hint_input = QtWidgets.QLineEdit(old_hint)
 
-        form_layout.addRow("Korean Word:", self.korean_input)
-        form_layout.addRow("English Translation:", self.english_input)
+        form_layout.addRow("Answer:", self.answer_input)
+        form_layout.addRow("Hint:", self.hint_input)
         layout.addLayout(form_layout)
 
         # Standard OK/Cancel Buttons
@@ -33,7 +33,7 @@ class EditCardDialog(QtWidgets.QDialog):
         layout.addWidget(buttons)
 
     def get_values(self):
-        return self.korean_input.text().strip(), self.english_input.text().strip()
+        return self.answer_input.text().strip(), self.hint_input.text().strip()
 
 
 class MainWindowAbstract(QtWidgets.QMainWindow):

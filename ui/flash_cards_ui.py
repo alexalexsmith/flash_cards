@@ -16,13 +16,13 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.files = []
         self.pending_uploads = []
         self.session_mistakes = []
-        self.study_mode = "STUDY"  # STUDY or RECAP
+        self.study_mode = "STUDY"  # STUDY, RECAP, PRACTICE
         self.current_index = 0
         self.is_adding_new = False
         self.current_data = {}
 
         self._init_sounds()
-        self.refresh_file_list()
+        self.shuffle_cards()
         self.load_next()
 
     def _init_sounds(self):
@@ -71,7 +71,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         study_session_group = QtWidgets.QGroupBox("Study Session Settings")
         study_session_layout = QtWidgets.QVBoxLayout()
         study_session_btns_layout = QtWidgets.QHBoxLayout()
-        filter_layout = QtWidgets.QHBoxLayout()
+        study_session_options_layout = QtWidgets.QHBoxLayout()
         self.spin_card_count = QtWidgets.QSpinBox()
         self.spin_card_count.setRange(0, 999)
         self.spin_card_count.setValue(20)
@@ -80,19 +80,24 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.spin_max = QtWidgets.QSpinBox()
         self.spin_max.setRange(0, 999)
         self.spin_max.setValue(0)
+        self.chckbx_practice_mode = QtWidgets.QCheckBox("Practice Mode")
         self.btn_shuffle_cards = QtWidgets.QPushButton("Shuffle Cards")
         self.btn_do_recap = QtWidgets.QPushButton("Do Session Mistake Recap")
 
-        filter_layout.addWidget(QtWidgets.QLabel("Cards:"))
-        filter_layout.addWidget(self.spin_card_count)
-        filter_layout.addWidget(QtWidgets.QLabel("Recall Min:"))
-        filter_layout.addWidget(self.spin_min)
-        filter_layout.addWidget(QtWidgets.QLabel("Recall Max:"))
-        filter_layout.addWidget(self.spin_max)
+        study_session_options_layout.addWidget(QtWidgets.QLabel("Cards:"))
+        study_session_options_layout.addWidget(self.spin_card_count)
+        study_session_options_layout.addWidget(QtWidgets.QLabel("Recall Min:"))
+        study_session_options_layout.addWidget(self.spin_min)
+        study_session_options_layout.addWidget(QtWidgets.QLabel("Recall Max:"))
+        study_session_options_layout.addWidget(self.spin_max)
+        study_session_options_layout.addWidget(self.chckbx_practice_mode)
+
         study_session_btns_layout.addWidget(self.btn_shuffle_cards)
         study_session_btns_layout.addWidget(self.btn_do_recap)
-        study_session_layout.addLayout(filter_layout)
+
+        study_session_layout.addLayout(study_session_options_layout)
         study_session_layout.addLayout(study_session_btns_layout)
+
         study_session_group.setLayout(study_session_layout)
         self.layout.addWidget(study_session_group)
 
@@ -121,15 +126,15 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.hint_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #555; letter-spacing: 5px;")
         self.layout.addWidget(self.hint_label)
 
-        # English Translation Area
-        self.english_label = QtWidgets.QLabel("")
-        self.english_label.setAlignment(QtCore.Qt.AlignCenter)
-        self.english_label.setStyleSheet("font-size: 18px; color: #2980b9; font-style: italic;")
-        self.english_label.hide()  # Hidden by default
-        self.layout.addWidget(self.english_label)
+        # Hint Area
+        self.hint_label = QtWidgets.QLabel("")
+        self.hint_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.hint_label.setStyleSheet("font-size: 18px; color: #2980b9; font-style: italic;")
+        self.hint_label.hide()  # Hidden by default
+        self.layout.addWidget(self.hint_label)
 
-        self.btn_reveal_english = QtWidgets.QPushButton("Reveal English")
-        self.layout.addWidget(self.btn_reveal_english)
+        self.btn_reveal_hint = QtWidgets.QPushButton("Reveal Hint")
+        self.layout.addWidget(self.btn_reveal_hint)
 
         # Input Area
         self.entry = QtWidgets.QLineEdit(self)
@@ -161,17 +166,23 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.resize(600, 850)
 
     def _set_up_socket_connections(self):
-        self.btn_shuffle_cards.clicked.connect(self.refresh_file_list)
+        self.chckbx_practice_mode.toggled.connect(self._callback_practice_mode_state_changed)
+        self.btn_shuffle_cards.clicked.connect(self.shuffle_cards)
         self.btn_do_recap.clicked.connect(self.load_session_recap)
-        self.btn_reveal_english.clicked.connect(self.toggle_english)
+        self.btn_reveal_hint.clicked.connect(self.toggle_english)
         self.entry.returnPressed.connect(self.handle_submit)
         self.btn_confirm.clicked.connect(self.handle_submit)
         self.btn_skip.clicked.connect(self.skip_image)
         self.btn_edit.clicked.connect(self.edit_current_word)
         self.btn_delete.clicked.connect(self.delete_current_card)
 
-    def refresh_file_list(self):
+    def shuffle_cards(self):
+        # Make sure practice mode checkbox is enabled on new shuffle
+        self.chckbx_practice_mode.setEnabled(True)
         self.study_mode = "STUDY"
+        if self.chckbx_practice_mode.isChecked():
+            self.study_mode = "PRACTICE"
+
         self.files = file_utils.get_card_file_list(
             self.spin_min.value(),
             self.spin_max.value(),
@@ -183,6 +194,8 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
     def load_session_recap(self):
         """Load all mistakes into a recap session"""
         self.study_mode = "RECAP"
+        # In recap mode you can't use practice mode
+        self.chckbx_practice_mode.setEnabled(False)
         self.files = self.session_mistakes
         # Flush the session_mistakes
         self.session_mistakes = []
@@ -190,31 +203,46 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         if not self.is_adding_new:
             self.load_next()
 
+    def _callback_practice_mode_state_changed(self):
+        """ui actions when practice mode toggled"""
+        if self.chckbx_practice_mode.isChecked():
+            self.study_mode = "PRACTICE"
+            self.mode_label.setText(f"MODE: {self.study_mode}")
+            self.update_hint(self.current_data.get('word', ""))
+        else:
+            self.study_mode = "STUDY"
+            self.mode_label.setText(f"MODE: {self.study_mode}")
+            self.update_hint(self.current_data.get('word', ""))
+
     def update_hint(self, word):
         hint = ""
-        for char in word:
-            if char == " ":
-                hint += "  "
-            else:
-                hint += "_ "
+        # In practice mode the answer is displayed
+        if self.study_mode == "PRACTICE":
+            hint = word
+        else:
+            for char in word:
+                if char == " ":
+                    hint += "  "
+                else:
+                    hint += "_ "
         self.hint_label.setText(hint.strip())
 
     def toggle_english(self):
         """Shows/Hides the English translation."""
-        if self.english_label.isHidden():
+        if self.hint_label.isHidden():
             translation = self.current_data.get('english', "No translation provided.")
-            self.english_label.setText(translation)
-            self.english_label.show()
-            self.btn_reveal_english.setText("Hide English")
+            self.hint_label.setText(translation)
+            self.hint_label.show()
+            self.btn_reveal_hint.setText("Hide Hint")
         else:
-            self.english_label.hide()
-            self.btn_reveal_english.setText("Reveal English")
+            self.hint_label.hide()
+            self.btn_reveal_hint.setText("Reveal Hint")
 
     def load_next(self):
         # Case 1: Processing new drops
         if self.pending_uploads:
             self.is_adding_new = True
-            self.mode_label.setText("MODE: ADDING NEW WORD")
+            self.mode_label.setText("MODE: ADDING NEW CARD")
             self.mode_label.setStyleSheet("font-weight: bold; color: green;")
             self.btn_confirm.setText("Save New Card")
             self.hint_label.setText("[Type translation to save]")
@@ -231,9 +259,9 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         self.btn_confirm.setText("Confirm Answer")
 
         # Reset English UI for every new card
-        self.english_label.hide()
-        self.btn_reveal_english.setText("Reveal English")
-        self.btn_reveal_english.setVisible(not self.is_adding_new)  # Only show in Study mode
+        self.hint_label.hide()
+        self.btn_reveal_hint.setText("Reveal Hint")
+        self.btn_reveal_hint.setVisible(not self.is_adding_new)  # Don't show hint when adding cards
 
         if self.current_index < len(self.files):
             self.img_label.setStyleSheet("border: none;")
@@ -278,7 +306,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.pending_uploads.pop(0)  # Duplicate! Skip it.
             # Check if we need to go back to Study Mode or load the next pending item
             if not self.pending_uploads:
-                self.refresh_file_list()
+                self.shuffle_cards()
             self.load_next()
             return
 
@@ -305,7 +333,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
             # Check if we need to go back to Study Mode or load the next pending item
             if not self.pending_uploads:
-                self.refresh_file_list()
+                self.shuffle_cards()
             self.load_next()
 
     def check_answer(self):
@@ -343,8 +371,8 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
             # Initialize the custom dialog with existing data
         dialog = qt_utils.EditCardDialog(
-            old_korean=self.current_data.get('word', ""),
-            old_english=self.current_data.get('english', ""),
+            old_answer=self.current_data.get('word', ""),
+            old_hint=self.current_data.get('english', ""),
             parent=self
         )
 
@@ -363,8 +391,8 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
 
             # Update the UI visuals
             self.update_hint(new_korean)
-            if not self.english_label.isHidden():
-                self.english_label.setText(new_english)
+            if not self.hint_label.isHidden():
+                self.hint_label.setText(new_english)
 
             # Save once to disk
             file_utils.update_card_data(self.files[self.current_index], self.current_data)
