@@ -30,7 +30,7 @@ def get_card_file_list(min_score, max_score, card_count):
         score = 0
         if os.path.exists(json_path):
             data = json_utils.load_json(json_path)
-            score = data.get('recal', 0)
+            score = data.get('recall', 0)
 
         if min_score <= score <= max_score:
             filtered_list.append(img_name)
@@ -50,7 +50,7 @@ def get_card_data(filename):
     if os.path.exists(json_path):
         return json_utils.load_json(json_path)
     # Return a default structure if the file is missing or new
-    return {"answer": "", "hint": "", "recal": 0}
+    return {"answer": "", "hint": "", "recall": 0}
 
 
 def update_card_data(filename, data):
