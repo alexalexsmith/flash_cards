@@ -20,10 +20,10 @@ the mode label above the card display describes the current mode of the tool
 #### STUDY
 Study mode is the default mode. Card recall data is updated based on answers given
 
-### RECAP
+#### RECAP
 Recap mode is a recap of cards you get wrong durring a study mode session. The recap cards are only stored when the app is open. Practice mode cannot be activated in recap mode. Card recall data is not updated in this mode
 
-### PRACTICE
+#### PRACTICE
 Practice mode displays the answer to the user. Card recall data is not updated in this mode
 
 ## Other stuff
