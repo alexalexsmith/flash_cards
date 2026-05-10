@@ -6,13 +6,25 @@ flashcard tool for creating and using flashcards. Right now it is designed to le
 ## How to use
 run the flash_cards.py python file to run the tool. If PyQt5 is not installed, the terminal will ask you if you want to install it
 
-drag and drop images into the ui. for each image you will be prompted to write the target laguage word/phrase(required) and the translation(optional)
+drag and drop images into the ui. for each image you will be prompted to write the target laguage word/phrase(required) and the translation(optional). You can drag and drop images from a web browser as long as the image is a .jpg, .png, .jpeg
 
 use the score spin boxes at the top to filter the flash cards based on how many times you get words correct
 
 Use the Edit Card button to edit the flash card's data
 
 Use the Delete Card button to delete the card and it's data
+
+### MODES
+the mode label above the card display describes the current mode of the tool
+
+#### STUDY
+Study mode is the default mode. Card recall data is updated based on answers given
+
+#### RECAP
+Recap mode is a recap of cards you get wrong durring a study mode session. The recap cards are only stored when the app is open. Practice mode cannot be activated in recap mode. Card recall data is not updated in this mode
+
+#### PRACTICE
+Practice mode displays the answer to the user. Card recall data is not updated in this mode
 
 ## Other stuff
 flash cards are stored in a cards folder that is created on first run
