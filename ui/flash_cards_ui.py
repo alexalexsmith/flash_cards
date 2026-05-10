@@ -39,6 +39,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.incorrect_sounds.append(effect)
 
     def init_ui(self):
+        # TODO: all string labels should be retrieved from a language settings file. along with errors and user messages
         # Create a top-level layout for the QMainWindow itself (not the container)
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
@@ -271,6 +272,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.mode_label.setStyleSheet("font-weight: bold; color: green;")
             self.btn_confirm.setText("Save New Card")
             self.hint_label.setText("[Type translation to save]")
+            self.stats_label.setText(f"Cards Left: {len(self.pending_uploads)}")
             self.display_image(self.pending_uploads[0])
             self.entry.clear()
             self.entry.setFocus()
@@ -299,22 +301,47 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
             self.entry.clear()
             self.entry.setFocus()
         else:
-            self.img_label.setStyleSheet("border: 3px dashed gray;")
-            self.img_label.clear()
+            # TODO: make this it's own function
+            self._display_image_label_border(True)
             self.hint_label.setText("")
-            self.img_label.setText("Session Finished. Drag new images or shuffle cards.")
             self.stats_label.setText("")
 
+    def _display_image_label_border(self, display):
+        """
+        Display the image label dashed border
+        :param bool display: option to display or hide dashed border
+        :return:
+        """
+        if display:
+            self.img_label.setStyleSheet("border: 3px dashed gray;")
+            self.img_label.clear()
+            self.img_label.setText("Session Finished. Drag new images or shuffle cards.")
+        else:
+            self.img_label.setStyleSheet("border: none;")
+
     def display_image(self, path):
+        # Use Pillow to check for EXIF rotation
+        rotation = file_utils.get_image_rotation(path)
+
+        # 2. Load into QPixmap
         pixmap = QtGui.QPixmap(path)
+
         if not pixmap.isNull():
-            # Use the current size of the label to scale
+            # 3. Apply rotation if needed
+            if rotation != 0:
+                transform = QtGui.QTransform()
+                transform.rotate(rotation)
+                pixmap = pixmap.transformed(transform, QtCore.Qt.SmoothTransformation)
+
             scaled = pixmap.scaled(
                 self.img_label.size(),
                 QtCore.Qt.KeepAspectRatio,
                 QtCore.Qt.SmoothTransformation
             )
             self.img_label.setPixmap(scaled)
+        else:
+            self.img_label.clear()
+
 
     def handle_submit(self):
         if self.is_adding_new:

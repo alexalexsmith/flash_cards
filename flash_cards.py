@@ -20,6 +20,26 @@ except ImportError:
         print("PyQt5 is required to run this application. Exiting.")
         sys.exit(1)
 
+# Check for Pillow and offer to install if missing
+try:
+    import PIL
+except ImportError:
+    print("Pillow not found. This is required to run the Flash Cards app.")
+    choice = input("Would you like to install it now via pip? (y/n): ").lower()
+    if choice == 'y':
+        try:
+            print("Installing Pillow... please wait.")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "Pillow"])
+            import PIL
+            print("Installation successful!\n")
+        except Exception as e:
+            print(f"Failed to install Pillow: {e}")
+            sys.exit(1)
+    else:
+        print("Pillow is required to run this application. Exiting.")
+        sys.exit(1)
+
+
 from ui.flash_cards_ui import FlashCardsUI
 
 if __name__ == "__main__":

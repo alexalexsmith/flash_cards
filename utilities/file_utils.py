@@ -4,6 +4,7 @@ File management utilities
 import os
 import shutil
 import random
+from PIL import Image
 
 from config import CARDS, SOUNDS
 from utilities import json_utils
@@ -115,3 +116,31 @@ def get_sound_files(category):
         if filename.lower().endswith(".wav"):
             sound_files.append(os.path.abspath(os.path.join(sounds_directory, filename)))
     return sound_files
+
+
+def get_image_rotation(path):
+    """
+    Get an images rotation flags
+    :param path:
+    :return:
+    """
+    # 1. Use Pillow to check for EXIF rotation
+    img = Image.open(path)
+    rotation = 0
+
+    try:
+        exif = img._getexif()
+        if exif:
+            # Orientation tag is usually 274
+            orientation = exif.get(274)
+            if orientation == 3:
+                rotation = 180
+            elif orientation == 6:
+                rotation = 90
+            elif orientation == 8:
+                rotation = 270
+    except Exception:
+        pass  # No EXIF data or error reading it
+    finally:
+        img.close()
+        return rotation
