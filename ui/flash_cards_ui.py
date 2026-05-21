@@ -293,7 +293,7 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         if self.current_index < len(self.cards):
             self.img_label.setStyleSheet("border: none;")
             self.current_card = self.cards[self.current_index]
-            self.display_image(self.current_card.image_path)
+            self.display_image(self.current_card.image_path())
 
             self.stats_label.setText(f"Cards Left: {len(self.cards) - self.current_index}")
             self.update_spelling_hint()
@@ -477,6 +477,6 @@ class FlashCardsUI(qt_utils.MainWindowAbstract):
         super().resizeEvent(event)
         # Re-trigger the image display logic to fit the new label size
         if hasattr(self, 'files') and self.cards and not self.is_adding_new:
-            self.display_image(self.current_card.image_path)
+            self.display_image(self.current_card.image_path())
         elif self.pending_uploads:
             self.display_image(self.pending_uploads[0])

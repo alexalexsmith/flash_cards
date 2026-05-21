@@ -2,6 +2,7 @@
 File management utilities
 """
 import os
+import re
 import shutil
 import random
 from PIL import Image
@@ -56,8 +57,30 @@ def get_card_data(filename):
 
 def update_card_data(filename, data):
     """Saves updated JSON data."""
+    image_path = get_image_path(filename)
     json_path = _get_json_path(filename)
+    # update naming
+    card_dir = os.path.dirname(image_path)
+    _, ext = os.path.splitext(image_path)
+    answer = data.get("answer", "")
+    clean_new_answer = sanitize_filename(answer)
+    if not clean_new_answer:
+        raise ValueError(f"The new answer '{answer}' does not contain any valid filename characters.")
+    new_image_name = f"{clean_new_answer}{ext}"
+    new_image_path = os.path.join(card_dir, f"{clean_new_answer}{ext}")
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Original image not found: {image_path}")
+
+    if os.path.exists(new_image_path) and image_path != new_image_path:
+        raise FileExistsError(f"A card with the name '{clean_new_answer}' already exists.")
+
+    new_json_path = os.path.join(card_dir, f"{clean_new_answer}.json")
+
+    os.rename(image_path, new_image_path)
+    os.rename(json_path, new_json_path)
+    # store data
     json_utils.save_json(json_path, data)
+    return new_image_name
 
 
 def card_exists(src_path):
@@ -70,15 +93,29 @@ def card_exists(src_path):
     return False
 
 
+def sanitize_filename(name):
+    """Removes invalid filename characters and replaces spaces with underscores."""
+    # Strip out characters that are illegal or problematic in Windows/Mac/Linux paths
+    # (keeps alphanumeric characters, dashes, and underscores)
+    clean_name = re.sub(r'[\\/*?:"<>|]', "", name)
+    clean_name = clean_name.replace(" ", "_")
+    return clean_name.strip()
+
+
 def save_new_card(src_path, answer, hint=""):
-    """Copies a new image to the folder and creates its JSON. Raises error if exists."""
-    base_name = os.path.basename(src_path)
-    dest_path = os.path.join(CARDS, base_name)
+    """Copies a new image to the folder, renaming it with a sanitized answer, and creates its JSON."""
+    clean_answer = sanitize_filename(answer)
+
+    if not clean_answer:
+        raise ValueError(f"The answer '{answer}' does not contain any valid filename characters.")
+
+    _, ext = os.path.splitext(src_path)
+    new_filename = f"{clean_answer}{ext}"
+    dest_path = os.path.join(CARDS, new_filename)
 
     if os.path.exists(dest_path):
-        raise FileExistsError(f"The file '{base_name}' already exists in the cards folder.")
+        raise FileExistsError(f"The file '{new_filename}' already exists in the cards folder.")
 
-    # Copy file if it's not already in the target directory
     if os.path.abspath(src_path) != os.path.abspath(dest_path):
         shutil.copy2(src_path, dest_path)
 
@@ -88,6 +125,7 @@ def save_new_card(src_path, answer, hint=""):
             "hint": hint,
             "recall": 0
         })
+
     return dest_path
 
 

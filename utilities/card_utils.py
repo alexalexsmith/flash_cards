@@ -28,7 +28,6 @@ class FlashCard(object):
         :param image: path to card image
         """
         self.image = image
-        self.image_path = file_utils.get_image_path(image)
         data = file_utils.get_card_data(image)
         self.answer = data.get("answer", "")
         self.hint = data.get("hint", "No Hint provided.")
@@ -46,8 +45,17 @@ class FlashCard(object):
     def update_card(self):
         """Saves card data to disk"""
         data = {"answer": self.answer, "hint": self.hint, "recall": self.recall}
-        file_utils.update_card_data(self.image, data)
+        try:
+            # rename the card if the answer was changed
+            self.image = file_utils.update_card_data(self.image, data)
+        except FileExistsError as e:
+            print(e)
+
+    def image_path(self):
+        """return the image path"""
+        return file_utils.get_image_path(self.image)
 
     def delete(self):
         """Delete the card and it's data"""
         file_utils.delete_card(self.image)
+
